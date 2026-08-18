@@ -199,10 +199,10 @@ func (s *InferenceService) CancelInferenceRun(ctx context.Context, runID string,
 			return err
 		}
 		for _, batch := range items {
-			if batch.State != domain.SnapshotReserved {
-				return domain.ConflictError{Resource: "sample_batch", Reason: "reservation is no longer active"}
+			if err := batch.Transition(domain.SnapshotValidated, now); err != nil {
+				return err
 			}
-			_ = batch.ReleasedReservation(now)
+			batch.InferenceRunID = ""
 			if err := tx.UpdateDatasetSnapshot(ctx, batch, batch.Version); err != nil {
 				return err
 			}
